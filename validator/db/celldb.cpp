@@ -195,10 +195,6 @@ void CellDbIn::get_cell_db_reader(td::Promise<std::shared_ptr<vm::CellDbReader>>
   promise.set_result(boc_->get_cell_db_reader());
 }
 
-void CellDbIn::get_last_deleted_mc_state(td::Promise<BlockSeqno> promise) {
-  promise.set_result(last_deleted_mc_state_);
-}
-
 void CellDbIn::flush_db_stats() {
   if (opts_->get_disable_rocksdb_stats()) {
     return;
@@ -326,7 +322,7 @@ void CellDbIn::gc_cont2(BlockHandle handle) {
     cell_db_statistics_.gc_cell_time_.insert(timer.elapsed() * 1e6);
   }
   if (handle->id().is_masterchain()) {
-    last_deleted_mc_state_ = handle->id().seqno();
+    td::actor::send_closure(parent_, &CellDb::update_last_deleted_mc_state, handle->id().seqno());
   }
   LOG(DEBUG) << "Deleted state " << handle->id().to_str();
 }
@@ -463,7 +459,11 @@ void CellDb::get_cell_db_reader(td::Promise<std::shared_ptr<vm::CellDbReader>> p
 }
 
 void CellDb::get_last_deleted_mc_state(td::Promise<BlockSeqno> promise) {
-  td::actor::send_closure(cell_db_, &CellDbIn::get_last_deleted_mc_state, std::move(promise));
+  promise.set_result(last_deleted_mc_state_);
+}
+
+void CellDb::update_last_deleted_mc_state(BlockSeqno seqno) {
+  last_deleted_mc_state_ = seqno;
 }
 
 void CellDb::start_up() {

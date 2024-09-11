@@ -61,7 +61,6 @@ class CellDbIn : public CellDbBase {
   void load_cell(RootHash hash, td::Promise<td::Ref<vm::DataCell>> promise);
   void store_cell(BlockIdExt block_id, td::Ref<vm::Cell> cell, td::Promise<td::Ref<vm::DataCell>> promise);
   void get_cell_db_reader(td::Promise<std::shared_ptr<vm::CellDbReader>> promise);
-  void get_last_deleted_mc_state(td::Promise<BlockSeqno> promise);
 
   void migrate_cell(td::Bits256 hash);
 
@@ -144,7 +143,6 @@ class CellDbIn : public CellDbBase {
   std::shared_ptr<td::RocksDbSnapshotStatistics> snapshot_statistics_;
   CellDbStatistics cell_db_statistics_;
   td::Timestamp statistics_flush_at_ = td::Timestamp::never();
-  BlockSeqno last_deleted_mc_state_ = 0;
 
  public:
   class MigrationProxy : public td::actor::Actor {
@@ -170,6 +168,7 @@ class CellDb : public CellDbBase {
   }
   void get_cell_db_reader(td::Promise<std::shared_ptr<vm::CellDbReader>> promise);
   void get_last_deleted_mc_state(td::Promise<BlockSeqno> promise);
+  void update_last_deleted_mc_state(BlockSeqno seqno);
 
   CellDb(td::actor::ActorId<RootDb> root_db, std::string path, td::Ref<ValidatorManagerOptions> opts)
       : root_db_(root_db), path_(path), opts_(opts) {
@@ -188,6 +187,7 @@ class CellDb : public CellDbBase {
   bool started_ = false;
 
   std::function<void(const vm::CellLoader::LoadResult&)> on_load_callback_;
+  BlockSeqno last_deleted_mc_state_ = 0;
 };
 
 }  // namespace validator
